@@ -121,7 +121,7 @@ async def websocket_endpoint(websocket: WebSocket):
     await manager.connect(websocket)
 
     sequence_buffer = deque(maxlen=SEQUENCE_LENGTH)
-    confidence_threshold = 0.75
+    confidence_threshold = 0.55
     current_prediction = None
     prediction_scores = None
     prediction_made = False
