@@ -31,7 +31,7 @@ mp_drawing = mp.solutions.drawing_utils
 
 hands = mp_hands.Hands(
     static_image_mode=False,
-    min_detection_confidence=0.65,
+    min_detection_confidence=0.7,
     min_tracking_confidence=0.65,
     max_num_hands=2
 )
