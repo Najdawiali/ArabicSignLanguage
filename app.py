@@ -29,8 +29,8 @@ logger = logging.getLogger("sign_language_api")
 
 # Environment variables with defaults
 DEBUG = os.getenv("DEBUG", "False").lower() in ("true", "1", "t")
-MODEL_PATH = os.getenv("MODEL_PATH", "./lstm_model_with_mhmd.h5")
-PREPROC_PATH = os.getenv("PREPROC_PATH", "./lstm_preprocessing_with_mhmd.pickle")
+MODEL_PATH = os.getenv("MODEL_PATH", "./lstm_model50.h5")
+PREPROC_PATH = os.getenv("PREPROC_PATH", "./lstm_preprocessing50.pickle")
 PORT = int(os.getenv("PORT", "8000"))
 HOST = os.getenv("HOST", "0.0.0.0")
 CONFIDENCE_THRESHOLD = float(os.getenv("CONFIDENCE_THRESHOLD", "0.55"))
