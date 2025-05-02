@@ -12,7 +12,7 @@ import os
 from typing import List
 
 # Load preprocessing objects
-with open('./lstm_preprocessing.pickle', 'rb') as f:
+with open('./lstm_preprocessing_with_mhmd.pickle', 'rb') as f:
     preproc = pickle.load(f)
     scaler = preproc['scaler']
     label_encoder = preproc['label_encoder']
@@ -20,7 +20,7 @@ with open('./lstm_preprocessing.pickle', 'rb') as f:
     n_features = preproc['n_features']
 
 # Load trained model
-model = tf.keras.models.load_model('lstm_model.h5')
+model = tf.keras.models.load_model('lstm_model_with_mhmd.h5')
 
 SEQUENCE_LENGTH = timesteps
 FEATURE_LENGTH = n_features
@@ -36,56 +36,64 @@ hands = mp_hands.Hands(
     max_num_hands=2
 )
 
-labels_dict = {
-    0: 'سلام', 1: 'صباح الخير', 2: 'شكراً', 3: 'أنا', 4: 'أنتَ', 5: 'أنتِ', 6: 'هو', 7: 'هي',
-    8: 'أنتم', 9: 'هم', 10: 'اسم', 11: 'كيف حالك؟', 12: 'الحمد لله', 13: 'سعيد', 14: 'حزين', 15: 'غاضب',
-    16: 'جيد', 17: 'سيء', 18: 'تعبان', 19: 'مريض', 20: 'أرى', 21: 'أقول', 22: 'أتكلم', 23: 'أمشي', 24: 'ذهبت',
-    25: 'جاء', 26: 'بيت', 27: 'أكل', 28: 'نام', 29: 'الجامعة', 30: 'اليوم', 31: 'غداً', 32: 'الأحد',
-    33: 'الثلاثاء', 34: 'الخميس', 35: 'الجمعة', 36: 'أسبوع', 37: 'شهر', 38: 'سنة', 39: 'متى', 40: 'أعرف',
-    41: 'أفكر', 42: 'نسيت', 43: 'أحب', 44: 'أريد', 45: 'يساعد', 46: 'غير مسموح', 47: 'أوافق', 48: 'معاً', 49: 'مختلف'
-}
+labels_dict = {0:'سلام',1:'صباح الخير',2:'شكراً',3:'انا',4:'انت',5:'سعيد',6:'هو',7:'هي',8:'متى',9:'هم'}
+
 
 
 def extract_hand_features(frame):
     data_aux = np.zeros(FEATURE_LENGTH, dtype=np.float32)
+
+    # Convert to RGB for MediaPipe
     img_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-    H, W, _ = frame.shape
+    H, W,_  = frame.shape
     results = hands.process(img_rgb)
 
+    # Variables to track hand presence and bounding box
     hands_present = False
-    x1 = y1 = x2 = y2 = 0
+    x1, y1, x2, y2 = 0, 0, 0, 0
 
     if results.multi_hand_landmarks:
         hands_present = True
-        all_x, all_y = [], []
+        all_x = []
+        all_y = []
 
         for hand_idx, hand_landmarks in enumerate(results.multi_hand_landmarks):
             if hand_idx >= 2:
                 break
-            mp_drawing.draw_landmarks(frame, hand_landmarks, mp_hands.HAND_CONNECTIONS)
 
-            x_, y_ = [], []
+            mp_drawing.draw_landmarks(
+                frame,
+                hand_landmarks,
+                mp_hands.HAND_CONNECTIONS,
+                mp_drawing_styles.get_default_hand_landmarks_style(),
+                mp_drawing_styles.get_default_hand_connections_style()
+            )
+
+            # Collect all x, y for bounding box
             for landmark in hand_landmarks.landmark:
-                x_.append(landmark.x)
-                y_.append(landmark.y)
                 all_x.append(landmark.x)
                 all_y.append(landmark.y)
 
-            if x_ and y_:
-                min_x, min_y = min(x_), min(y_)
-                base_idx = hand_idx * 42
-                for i, landmark in enumerate(hand_landmarks.landmark):
-                    data_aux[base_idx + i * 2] = landmark.x - min_x
-                    data_aux[base_idx + i * 2 + 1] = landmark.y - min_y
+            # Normalize like the first version
+            landmarks = np.array([[lm.x, lm.y] for lm in hand_landmarks.landmark], dtype=np.float32)
+            landmarks -= landmarks[0]  # Center around wrist
+            max_dist = np.max(np.linalg.norm(landmarks, axis=1))
+            if max_dist > 0:
+                landmarks /= max_dist  # Normalize scale
 
+            # Flatten and insert into data_aux
+            base_idx = hand_idx * 42
+            flat = landmarks.flatten()
+            data_aux[base_idx:base_idx + len(flat)] = flat
+
+        # Calculate bounding box if hands are present
         if all_x and all_y:
             x1 = int(min(all_x) * W) - 10
             y1 = int(min(all_y) * H) - 10
             x2 = int(max(all_x) * W) + 10
             y2 = int(max(all_y) * H) + 10
 
-    data_aux_scaled = scaler.transform([data_aux])[0]
-    return data_aux_scaled, frame, hands_present, (x1, y1, x2, y2)
+    return data_aux, frame, hands_present, (x1, y1, x2, y2)
 
 
 # FastAPI setup
