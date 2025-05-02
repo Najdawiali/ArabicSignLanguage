@@ -28,6 +28,7 @@ FEATURE_LENGTH = n_features
 # Initialize MediaPipe Hands
 mp_hands = mp.solutions.hands
 mp_drawing = mp.solutions.drawing_utils
+mp_drawing_styles = mp.solutions.drawing_styles  # Add the missing import for drawing styles
 
 hands = mp_hands.Hands(
     static_image_mode=False,
