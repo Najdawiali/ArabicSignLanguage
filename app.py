@@ -45,7 +45,7 @@ labels_dict = {
     41: 'أفكر', 42: 'نسيت', 43: 'أحب', 44: 'أريد', 45: 'يساعد', 46: 'غير مسموح', 47: 'أوافق', 48: 'معاً', 49: 'مختلف'
 }
 
-
+#update
 def extract_hand_features(frame):
     data_aux = np.zeros(FEATURE_LENGTH, dtype=np.float32)
     img_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
